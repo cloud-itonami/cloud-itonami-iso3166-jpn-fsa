@@ -1,3 +1,13 @@
 ;; Real-world organization location / contact.
 ;; :head-role is institutional title only — no personal names.
-{:contact-page "https://www.wikidata.org/wiki/Q615316", :ooyake-id "gov.jpn.finreg", :sourced-from "com-etzhayyim-ooyake gov-units (verbatim where present)", :head-role-note "institutional office title only; personal names of current office-holders are intentionally NOT stored", :official-url "http://www.fsa.go.jp", :head-role "金融庁長官", :hq {:line-en "Central Government Building No. 7", :country "jpn", :kind "headquarters", :provenance "https://www.wikidata.org/wiki/Q615316", :last-verified "2026-06-03", :sourcing "authoritative"}, :wikidata "Q615316", :name-en "Financial Services Agency", :name-local "金融庁"}
+{:ooyake-id "gov.jpn.finreg"
+  :official-url "http://www.fsa.go.jp"
+  :name-en "Financial Services Agency"
+  :name-local "金融庁"
+  :wikidata "Q615316"
+  :head-role "金融庁長官"
+  :head-role-note "institutional office title only; personal names of current office-holders are intentionally NOT stored"
+  :contact-page "https://www.wikidata.org/wiki/Q615316"
+  :sourced-from "com-etzhayyim-ooyake gov-units (verbatim where present)"
+  :hq {:line-en "Central Government Building No. 7" :country "jpn" :kind "headquarters" :provenance "https://www.wikidata.org/wiki/Q615316" :last-verified "2026-06-03" :sourcing "authoritative"}
+}
