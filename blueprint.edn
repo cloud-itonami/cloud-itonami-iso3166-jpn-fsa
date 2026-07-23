@@ -9,4 +9,5 @@
  :itonami.blueprint/governor :financial-regulatory-compliance-governor
  :itonami.blueprint/robotics false
  :itonami.blueprint/required-technologies [:identity :forms :dmn :bpmn :audit-ledger]
- :itonami.blueprint/status :public-oss}
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/organization {:ooyake-id "gov.jpn.finreg" :official-url "http://www.fsa.go.jp" :head-role "金融庁長官" :contact-page "https://www.wikidata.org/wiki/Q615316"}}
