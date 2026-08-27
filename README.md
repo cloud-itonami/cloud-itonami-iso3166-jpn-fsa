@@ -49,6 +49,44 @@ set — it always requires human sign-off (mirrors `cloud-itonami-M6910`'s
   Japan-licensed counsel or a registered agent where the law requires
   licensed representation.
 
+## Regulatory source register
+
+Every regulatory claim in this repository must cite an official source, and
+[`facts.edn`](facts.edn) is the set it must cite from. A regulation that is
+not in that table has no spec-basis here — extend the table, never invent a
+law id, a law number or a URL.
+
+```bash
+nbb scripts/verify-facts.cljs   # re-fetch every entry from the live authority
+nbb scripts/break-tests.cljs    # prove the verifier discriminates
+```
+
+`verify-facts.cljs` has three exit codes and the third is the point: `0` every
+entry agreed, `1` the register is wrong about the world, `2` **REFUSED** — this
+run could not answer. A run that could not read a page must not be able to
+report the same thing as a run that read it and found it unchanged.
+
+Two measured properties of these authorities shape every check, and both are
+written up in `facts.edn`'s header:
+
+- **www.fsa.go.jp's 404 page is longer than its front page** and carries the
+  whole subject vocabulary in its navigation. 銀行, 保険 and 金融商品取引 occur
+  on it exactly as often as on the 法令・指針等 page — every occurrence there is
+  chrome. So needles are chosen by subtracting the live 404 body, not by topic
+  relevance, and a needle found on the 404 **refuses** rather than passing.
+- **laws.e-gov.go.jp answers a fabricated law id two different ways.**
+  `law_data/<id>` returns 404; the much cheaper `laws?law_id=<id>` returns
+  **200** with `total_count: 0`. This register uses the cheap endpoint and
+  therefore never checks its status — identity is `total_count` plus an exact
+  `law_id` match, and being in force is `repeal_status` **and**
+  `current_revision_status`, because neither field answers that alone.
+
+The entries whose ids end in `-control` are cited for no proposition. They are
+live instances of states the checks claim to detect — a repealed Act, two Acts
+that were never repealed but whose served revision is not the current one, and
+a fabricated law id. Delete them and the verifier keeps passing while having
+stopped discriminating, so it refuses to run without them.
+
 ## Capability layer
 
 Resolves via [`kotoba-lang/iso3166`](https://github.com/kotoba-lang/iso3166)

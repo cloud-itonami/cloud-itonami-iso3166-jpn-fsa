@@ -1,0 +1,713 @@
+;; Regulatory source register for JPN-FSA payment-services (資金決済法) and
+;; financial-regulatory (銀行・金融商品取引・保険) compliance.
+;;
+;; README.md says: every regulatory claim must cite the official FSA source.
+;; docs/business-model.md routes a legal conclusion the governor has not
+;; cleared to human sign-off.
+;;
+;; Until this file existed there was no such list. The documents required a
+;; citation against a set that did not exist, so nothing in this repository
+;; could tell a real citation from an invented one. This is that list.
+;;
+;; Shape is tx-data (a vector of entity maps), like every other EDN corpus in
+;; this workspace, so it loads with
+;;   (d/transact conn (edn/read-string (slurp "facts.edn")))
+;; :source/id is the join key. A regulation not in this table has NO
+;; spec-basis for this repository -- extend the table, never invent an id, a
+;; law id, or a URL.
+;;
+;; VERIFIED BY `nbb scripts/verify-facts.cljs`, which re-fetches every entry
+;; from the live authority. Each entry carries a :source/verify tag naming
+;; WHICH check establishes it. The checks are NOT interchangeable, and the
+;; reasons are the main thing this file has to teach.
+;;
+;; Everything below was measured against these hosts on 2026-08-27. The
+;; sibling registers in this cohort are written against other agencies and
+;; their host notes do not transfer -- this one is www.fsa.go.jp and
+;; laws.e-gov.go.jp, and both are wrong in ways that are their own.
+;;
+;; ── THE 404 PAGE IS BIGGER THAN THE FRONT PAGE
+;;
+;; Measured 2026-08-27, text with tags and <script> removed:
+;;
+;;   /zzz-no-such-page-9f3c2a1b8e/   404   3904 chars
+;;   /                               200   3241 chars
+;;   /common/law/index.html          200   3386 chars
+;;   /menkyo/menkyo.html             200   5627 chars
+;;
+;; Counted by verify-facts.cljs's own de-tag, which is the function that
+;; re-measures them on every run. Counting them with a different tool would
+;; make the register and its verifier disagree about their own evidence --
+;; the numbers below moved by about 200 characters when this was first
+;; written with a separate script, purely from how each one strips <script>.
+;;
+;; The missing page carries the entire global navigation, so it is LONGER
+;; than the front page and longer than one of the two pages this register
+;; leans on hardest. Every "did I get a real page" heuristic built on size,
+;; or on "the body was substantial", gets this host exactly backwards.
+;;
+;; It is worse than size. The nav carries the ministry's whole subject
+;; vocabulary, which is the vocabulary an author reaches for when choosing a
+;; needle. Occurrences, measured the same day:
+;;
+;;                    on 404   on /common/law/index.html
+;;   銀行                6            6
+;;   保険                6            6
+;;   金融商品取引         3            3
+;;   法令               10           19
+;;   指針               10           18
+;;   ガイドライン        12           17
+;;   法令・指針等         4            7
+;;
+;; The first three are IDENTICAL. Every occurrence of 銀行, 保険 and
+;; 金融商品取引 on the 法令・指針等 page is chrome -- the page's own body
+;; contributes none of them. Those three are precisely the sectors README.md
+;; names, so the obvious needle for this repository's subject matter verifies
+;; against a deleted page. Even 法令・指針等, which is that page's own title,
+;; is on the 404 four times.
+;;
+;; The page has 3386 characters and only THIRTEEN segments of six characters
+;; or more that are not already on the 404. Roughly everything about it is
+;; chrome. So needles here are not chosen for topic relevance; they are
+;; chosen by set difference against the live 404 body, and the verifier
+;; re-does that subtraction every run: a needle found on the fetched 404
+;; REFUSES rather than passes.
+;;
+;; ── THE STATUTE HOST HAS TWO ENDPOINTS THAT DISAGREE ABOUT FABRICATED IDS
+;;
+;; Measured 2026-08-27, same host, same fabricated id 999AC0000000999:
+;;
+;;   GET /api/2/law_data/999AC0000000999   -> 404  120 B
+;;   GET /api/2/laws?law_id=999AC0000000999 -> 200  {"total_count":0,...}
+;;
+;; The first discriminates by status. The second does not: a fabricated law
+;; id and a real one both answer 200.
+;;
+;; This matters because the second endpoint is the one you want. It returns
+;; 1954 bytes of metadata where law_data returns the full text -- 822 KB for
+;; 資金決済法, 4.5 MB for 金融商品取引法. Switching to it is a 400x saving and
+;; the obvious optimisation. Made without moving the check off status, it
+;; VERIFIES EVERY FABRICATED LAW ID IN THIS FILE, and reports the same
+;; "all entries checked" as a run that verified them properly.
+;;
+;; This register uses the cheap endpoint deliberately, and the checks below
+;; never look at its status. They require total_count = 1, the returned
+;; law_id to equal the one asked for, and title, number, type and
+;; promulgation date to match. That is strictly stronger than the status
+;; check it replaces. :law/fabricated-id-control keeps the trap live: it
+;; asserts the fabricated id still answers 200 with an empty result, so if
+;; this endpoint ever starts 404ing, the note above is stale rather than
+;; silently over-cautious.
+;;
+;; Two smaller shapes of the same endpoint, measured the same day:
+;;
+;;   an UNKNOWN query parameter is ignored, not rejected -- bogus_param=1
+;;   returns 200 and the query runs on the remaining parameters, so a typo in
+;;   a filter name silently widens the search instead of failing;
+;;
+;;   law_title is a SUBSTRING match -- law_title=銀行法 returns 27 laws
+;;   including 長期信用銀行法 and 日本銀行法. Nothing in this file is looked up
+;;   by title at verification time for that reason; law_id is the key.
+;;
+;; ── "NOT REPEALED" IS NOT "IN FORCE"
+;;
+;; Two independent fields, and neither one answers the question alone.
+;; Measured 2026-08-27:
+;;
+;;   324AC0000000068 簡易生命保険法
+;;     repeal_status Repeal, repeal_date 2020-04-01, remain_in_force TRUE
+;;   329AC0000000115 厚生年金保険法
+;;     repeal_status None, current_revision_status PreviousEnforced
+;;
+;; The first is repealed and still flags remain_in_force, because
+;; transitional provisions survive it -- so remain_in_force does not mean
+;; what its name suggests. The second is not repealed at all, yet the
+;; revision the API serves is not the currently enforced one.
+;;
+;; So a check that reads only repeal_status passes 厚生年金保険法 while
+;; handing back superseded text, and a check that reads only remain_in_force
+;; passes a law repealed six years ago. Both fields are asserted separately
+;; on every statute here, and both directions are held live by controls:
+;; :law/repealed-control (Repeal), :law/previous-enforced-control
+;; (None + PreviousEnforced), :law/loss-of-effectiveness-control and
+;; :law/expired-control. All four are OUTSIDE this repository's subject
+;; matter and are cited for no proposition -- they exist so the repeal and
+;; revision checks are checks rather than constants.
+;;
+;; Three repeal tokens are observed in this corpus -- Repeal, Expire and
+;; LossOfEffectiveness -- each with a control below. The set is measured, not
+;; assumed, and :host/repeal-tokens is asserted against the controls each run.
+;;
+;; ── A MISSING PDF IS 36 KB OF HTML
+;;
+;; The registry lists are PDFs. A deleted one answers:
+;;
+;;   404, content-type text/html, 36032 B, body = the site 404 page
+;;
+;; Status is honest here, but "I received a substantial body" is not evidence
+;; and neither is "the fetch did not throw". Every PDF below is checked on
+;; three independent properties -- status 200, content-type application/pdf,
+;; and the %PDF- magic in the first bytes -- so a dead link fails all three
+;; and a content-type change fails one and is reported rather than absorbed.
+;;
+;; Each PDF also asserts that the registry page still LINKS to it. A file
+;; that survives while the page that cited it stops pointing at it is an
+;; orphaned citation, which is exactly the state this register exists to
+;; prevent, and no check on the file alone can see it.
+
+[;; ── HOSTS ──────────────────────────────────────────────────────────────
+ ;; Declared per host because they do not behave alike, and a check written
+ ;; against one of them is wrong about the other. Measured at run time, not
+ ;; read off this register.
+
+ {:host/name "www.fsa.go.jp"
+  :host/kind :page
+  :host/charset "utf-8"
+  :host/charset-in-header? false
+  :host/missing-status 404
+  :host/missing-title "エラー404 お探しのページは存在しません。：金融庁"
+  :host/missing-probe "https://www.fsa.go.jp/"
+  :host/front-page "https://www.fsa.go.jp/"
+  :host/missing-longer-than-front? true
+  :host/note
+  "Honest 404 by status and by title, and a very large one: the missing page
+   carries the full global navigation, so its text is LONGER than the front
+   page. Size tells you nothing here and subject keywords tell you less --
+   銀行, 保険 and 金融商品取引 appear on it the same number of times as on the
+   法令・指針等 page. Needles in this file are chosen by subtracting the 404
+   body, and the verifier redoes that subtraction live. Declares charset only
+   inside the document; the header is a bare text/html. Pages are UTF-8, but
+   the header does not say so, so bodies are decoded with a fatal decoder and
+   an undecodable body refuses rather than reporting a missing needle."
+  :host/measured "2026-08-27"}
+
+ {:host/name "laws.e-gov.go.jp"
+  :host/kind :statute-api
+  :host/api-base "https://laws.e-gov.go.jp/api/2/laws?law_id="
+  :host/full-text-base "https://laws.e-gov.go.jp/api/2/law_data/"
+  :host/live-repeal-token "None"
+  :host/repeal-tokens ["Repeal" "Expire" "LossOfEffectiveness"]
+  :host/enforced-token "CurrentEnforced"
+  :host/fabricated-id-status 200
+  :host/note
+  "Two endpoints that answer a fabricated law id differently: law_data 404s,
+   the laws listing returns 200 with total_count 0. This register uses the
+   listing endpoint -- 400x smaller -- and therefore never checks its status.
+   Identity is total_count = 1 plus an exact law_id match; being in force is
+   repeal_status AND current_revision_status, because neither alone is
+   sufficient (see the header). Unknown query parameters are ignored rather
+   than rejected, and law_title is a substring match, so nothing here is
+   looked up by title."
+  :host/measured "2026-08-27"}
+
+ ;; ── STATUTES: THE PAYMENT-SERVICES SIDE ────────────────────────────────
+ ;; What the README names first: registration and classification under the
+ ;; Payment Services Act for an operator handling payments or funds transfer.
+
+ {:source/id :law/payment-services
+  :source/verify :statute-api
+  :source/role "資金決済法 -- the Act the payment side of this repository hangs
+                from. Defines 前払式支払手段, 資金移動業, 暗号資産交換業 and
+                電子決済手段等取引業, and makes each of them a registration
+                rather than a thing an operator may simply do."
+  :statute/law-id "421AC0000000059"
+  :statute/title "資金決済に関する法律"
+  :statute/law-num "平成二十一年法律第五十九号"
+  :statute/abbrev "資金決済法"
+  :statute/kind "Act"
+  :statute/promulgated "2009-06-24"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/payment-services-order
+  :source/verify :statute-api
+  :source/role "資金決済法施行令 -- the Cabinet Order carrying the thresholds
+                and the registration mechanics the Act delegates, including
+                the amounts at which an obligation starts to bind."
+  :statute/law-id "422CO0000000019"
+  :statute/title "資金決済に関する法律施行令"
+  :statute/law-num "平成二十二年政令第十九号"
+  :statute/abbrev "資金決済法施行令"
+  :statute/kind "CabinetOrder"
+  :statute/promulgated "2010-03-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/prepaid-instruments-ordinance
+  :source/verify :statute-api
+  :source/role "前払式支払手段に関する内閣府令 -- the operative rules for both
+                自家型 and 第三者型 issuers: notification, registration, the
+                deposit obligation and the reporting cycle."
+  :statute/law-id "422M60000002003"
+  :statute/title "前払式支払手段に関する内閣府令"
+  :statute/law-num "平成二十二年内閣府令第三号"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2010-03-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/funds-transfer-ordinance
+  :source/verify :statute-api
+  :source/role "資金移動業者に関する内閣府令 -- what a 資金移動業者 must satisfy
+                to register and to stay registered. The instrument a
+                public-sector operator moving funds spends the most time
+                inside."
+  :statute/law-id "422M60000002004"
+  :statute/title "資金移動業者に関する内閣府令"
+  :statute/law-num "平成二十二年内閣府令第四号"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2010-03-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/crypto-exchange-ordinance
+  :source/verify :statute-api
+  :source/role "暗号資産交換業者に関する内閣府令 -- registration and conduct
+                rules for 暗号資産交換業. Cited on FSA's own 暗号資産 page
+                alongside the two instruments above, which is the
+                cross-check: the regulator names the same three."
+  :statute/law-id "429M60000002007"
+  :statute/title "暗号資産交換業者に関する内閣府令"
+  :statute/law-num "平成二十九年内閣府令第七号"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2017-03-24"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ ;; ── STATUTES: BANKING, SECURITIES, INSURANCE ───────────────────────────
+ ;; The three sectors README.md names for contracts that touch them.
+
+ {:source/id :law/banking
+  :source/verify :statute-api
+  :source/role "銀行法 -- what makes banking a licensed activity, and the
+                boundary an operator handling funds must establish it is on
+                the right side of."
+  :statute/law-id "356AC0000000059"
+  :statute/title "銀行法"
+  :statute/law-num "昭和五十六年法律第五十九号"
+  :statute/kind "Act"
+  :statute/promulgated "1981-06-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/banking-order
+  :source/verify :statute-api
+  :source/role "銀行法施行令 -- the delegated detail, including the scope
+                questions that decide whether an arrangement is 銀行業 at all."
+  :statute/law-id "357CO0000000040"
+  :statute/title "銀行法施行令"
+  :statute/law-num "昭和五十七年政令第四十号"
+  :statute/kind "CabinetOrder"
+  :statute/promulgated "1982-03-27"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/fiea
+  :source/verify :statute-api
+  :source/role "金融商品取引法 -- the securities side. Registration of
+                金融商品取引業, disclosure, and the conduct regime. Amended in
+                2026 together with 資金決済法 by 令和八年法律第六十四号, which is
+                why the two are read as one moving surface rather than two
+                settled ones."
+  :statute/law-id "323AC0000000025"
+  :statute/title "金融商品取引法"
+  :statute/law-num "昭和二十三年法律第二十五号"
+  :statute/kind "Act"
+  :statute/promulgated "1948-04-13"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/fiea-business-ordinance
+  :source/verify :statute-api
+  :source/role "金商業等府令 -- the operative conduct and registration rules
+                for 金融商品取引業者, where the securities analogue of the
+                payment-side ordinances actually lives."
+  :statute/law-id "419M60000002052"
+  :statute/title "金融商品取引業等に関する内閣府令"
+  :statute/law-num "平成十九年内閣府令第五十二号"
+  :statute/abbrev "金商業等府令"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2007-08-06"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/insurance-business
+  :source/verify :statute-api
+  :source/role "保険業法 -- the insurance-adjacent boundary. Decides whether a
+                risk-bearing arrangement in a public-sector contract is
+                insurance and therefore licensed."
+  :statute/law-id "407AC0000000105"
+  :statute/title "保険業法"
+  :statute/law-num "平成七年法律第百五号"
+  :statute/kind "Act"
+  :statute/promulgated "1995-06-07"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/insurance-business-order
+  :source/verify :statute-api
+  :source/role "保険業法施行令 -- the delegated detail, including the
+                small-amount and short-term thresholds that decide which
+                regime applies."
+  :statute/law-id "407CO0000000425"
+  :statute/title "保険業法施行令"
+  :statute/law-num "平成七年政令第四百二十五号"
+  :statute/kind "CabinetOrder"
+  :statute/promulgated "1995-12-22"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ ;; ── STATUTES: AML AND THE AGENCY ITSELF ────────────────────────────────
+
+ {:source/id :law/aml
+  :source/verify :statute-api
+  :source/role "犯収法 -- customer verification, record keeping and suspicious
+                transaction reporting. Binds every registered operator on the
+                payment side, so it is not optional to any path through this
+                repository."
+  :statute/law-id "419AC0000000022"
+  :statute/title "犯罪による収益の移転防止に関する法律"
+  :statute/law-num "平成十九年法律第二十二号"
+  :statute/abbrev "犯罪収益移転防止法,犯収法"
+  :statute/kind "Act"
+  :statute/promulgated "2007-03-31"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/aml-order
+  :source/verify :statute-api
+  :source/role "犯収法施行令 -- which businesses are 特定事業者 and which
+                transactions are 特定取引."
+  :statute/law-id "420CO0000000020"
+  :statute/title "犯罪による収益の移転防止に関する法律施行令"
+  :statute/law-num "平成二十年政令第二十号"
+  :statute/abbrev "犯収法施行令,犯罪収益移転防止法施行令"
+  :statute/kind "CabinetOrder"
+  :statute/promulgated "2008-02-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/aml-rules
+  :source/verify :statute-api
+  :source/role "犯収法施行規則 -- the verification methods themselves. Issued
+                jointly by eight ministries, which is why its law number is a
+                sentence rather than a phrase; recorded exactly as the
+                authority returns it."
+  :statute/law-id "420M60000F5A001"
+  :statute/title "犯罪による収益の移転防止に関する法律施行規則"
+  :statute/law-num "平成二十年内閣府・総務省・法務省・財務省・厚生労働省・農林水産省・経済産業省・国土交通省令第一号"
+  :statute/abbrev "犯罪収益移転防止法施行規則,犯収法施行規則"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2008-02-01"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/fsa-establishment
+  :source/verify :statute-api
+  :source/role "金融庁設置法 -- establishes the agency this repository is named
+                for and fixes what it has authority over. The instrument that
+                makes 金融庁 the right addressee at all."
+  :statute/law-id "410AC1000000130"
+  :statute/title "金融庁設置法"
+  :statute/law-num "平成十年法律第百三十号"
+  :statute/kind "Act"
+  :statute/promulgated "1998-10-16"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ {:source/id :law/deposit-taking-restriction
+  :source/verify :statute-api
+  :source/role "出資法 -- the prohibition on accepting 預り金 without authority.
+                The floor under the whole payment-services classification
+                question: an arrangement that is not one of the registered
+                categories may be a criminal offence rather than merely
+                unregistered."
+  :statute/law-id "329AC0000000195"
+  :statute/title "出資の受入れ、預り金及び金利等の取締りに関する法律"
+  :statute/law-num "昭和二十九年法律第百九十五号"
+  :statute/kind "Act"
+  :statute/promulgated "1954-06-23"
+  :statute/repealed? false
+  :statute/enforced? true}
+
+ ;; ── CONTROLS ───────────────────────────────────────────────────────────
+ ;; Cited for NO proposition. These exist so that the repeal, revision and
+ ;; identity checks are checks rather than constants: each one is a live
+ ;; instance of a state the checks claim to detect. Delete them and the
+ ;; verifier keeps passing while having stopped discriminating.
+
+ {:source/id :law/repealed-control
+  :source/verify :statute-api
+  :source/role "CONTROL, not a citation. A repealed Act that the API still
+                serves in full at total_count 1 -- so only the repeal field
+                separates it from a live one. It also flags remain_in_force
+                TRUE while being repealed, which is why that field is not
+                read as an answer to whether a law is operative."
+  :statute/law-id "324AC0000000068"
+  :statute/title "簡易生命保険法"
+  :statute/law-num "昭和二十四年法律第六十八号"
+  :statute/kind "Act"
+  :statute/promulgated "1949-05-16"
+  :statute/repealed? true
+  :statute/repeal-token "Repeal"
+  :statute/repeal-date "2020-04-01"
+  :statute/remain-in-force? true
+  :statute/enforced? false}
+
+ {:source/id :law/previous-enforced-control
+  :source/verify :statute-api
+  :source/role "CONTROL, not a citation. The subtle one: repeal_status is
+                None -- this Act was never repealed -- yet the revision the
+                API serves is PreviousEnforced rather than CurrentEnforced. A
+                verifier that reads only repeal_status calls this in force and
+                hands back superseded text. This entry is the reason
+                :statute/enforced? exists as a separate assertion."
+  :statute/law-id "329AC0000000115"
+  :statute/title "厚生年金保険法"
+  :statute/law-num "昭和二十九年法律第百十五号"
+  :statute/kind "Act"
+  :statute/promulgated "1954-05-19"
+  :statute/repealed? false
+  :statute/enforced? false}
+
+ {:source/id :law/previous-enforced-control-2
+  :source/verify :statute-api
+  :source/role "CONTROL, not a citation. A SECOND law in the not-repealed-but-
+                superseded state, because one instance reads as an oddity and
+                two read as a state the API actually has. It also keeps the
+                register verifiable while that state is under test: the
+                structural floor in verify-facts.cljs refuses a register with
+                no superseded control, so with only one entry a test that
+                mis-declares it gets REFUSED by the floor before the
+                enforcement check can fire, and the check would never be seen
+                to work. break-tests.cljs case 9b is exactly that test."
+  :statute/law-id "343AC1000000089"
+  :statute/title "社会保険労務士法"
+  :statute/law-num "昭和四十三年法律第八十九号"
+  :statute/kind "Act"
+  :statute/promulgated "1968-06-03"
+  :statute/repealed? false
+  :statute/enforced? false}
+
+ {:source/id :law/loss-of-effectiveness-control
+  :source/verify :statute-api
+  :source/role "CONTROL, not a citation. Carries the LossOfEffectiveness
+                repeal token, which is not the same string as Repeal. Present
+                so :host/repeal-tokens is a measured set rather than a guess."
+  :statute/law-id "411CO0000000270"
+  :statute/title "国民金融公庫法の一部を改正する法律の施行に伴う関係政令の整備等に関する政令"
+  :statute/law-num "平成十一年政令第二百七十号"
+  :statute/kind "CabinetOrder"
+  :statute/promulgated "1999-09-20"
+  :statute/repealed? true
+  :statute/repeal-token "LossOfEffectiveness"
+  :statute/repeal-date "1999-10-01"
+  :statute/enforced? false}
+
+ {:source/id :law/expired-control
+  :source/verify :statute-api
+  :source/role "CONTROL, not a citation. Carries the third token, Expire.
+                Chosen from the FSA's own corpus -- it is an ordinance about
+                the identification FSA inspectors carry -- so the token set is
+                observed in this subject area and not imported from another
+                register."
+  :statute/law-id "426M60000002010"
+  :statute/title "消費税の円滑かつ適正な転嫁の確保のための消費税の転嫁を阻害する行為の是正等に関する特別措置法第十五条第一項及び第二項の規定による立入検査をする金融庁等の職員の携帯する身分を示す証明書の様式を定める内閣府令"
+  :statute/law-num "平成二十六年内閣府令第十号"
+  :statute/kind "MinisterialOrdinance"
+  :statute/promulgated "2014-02-24"
+  :statute/repealed? true
+  :statute/repeal-token "Expire"
+  :statute/repeal-date "2021-04-01"
+  :statute/enforced? false}
+
+ {:source/id :law/fabricated-id-control
+  :source/verify :fabricated-id
+  :source/role "CONTROL, not a citation. Keeps the two-endpoint trap live: a
+                fabricated law id must still answer 200 with total_count 0 on
+                the listing endpoint, and 404 on law_data. If the listing
+                endpoint ever starts 404ing, the header is stale and the
+                identity checks are stricter than they need to be -- which is
+                worth knowing, and is not the same as being wrong."
+  :statute/law-id "999AC0000000999"
+  :statute/listing-status 200
+  :statute/listing-total 0
+  :statute/full-text-status 404}
+
+ ;; ── PAGES ──────────────────────────────────────────────────────────────
+ ;; Every needle below was chosen by subtracting the live 404 body, not by
+ ;; topic relevance, for the reason set out in the header. The verifier redoes
+ ;; that subtraction each run and REFUSES an entry whose needle it finds on
+ ;; the 404 -- a needle that has become site chrome is a broken check, not a
+ ;; broken page, and the two must not report alike.
+ ;;
+ ;; Titles are asserted exactly. Note the separator is not consistent across
+ ;; this host -- 法令・指針等：金融庁 has no space, 事業者一覧： 金融庁 has one
+ ;; after the colon, 各種窓口のご案内 ： 金融庁 has one on each side. They are
+ ;; recorded as returned; a verifier that trims around the colon to make them
+ ;; uniform would stop being able to see a title change.
+
+ {:source/id :page/law-index
+  :source/verify :page
+  :source/host "www.fsa.go.jp"
+  :source/role "法令・指針等 -- the index the README's cite-the-official-source
+                rule points at: 所管法令一覧, 所管告示一覧, the supervisory
+                guidelines and the list of withdrawn ones."
+  :page/url "https://www.fsa.go.jp/common/law/index.html"
+  :page/title "法令・指針等：金融庁"
+  :page/must-contain "所管法令一覧"
+  :page/needle-note
+  "This is the page the header's measurement is about. It has 3188 characters
+   and 13 segments that are not already on the 404, and its own title phrase
+   法令・指針等 is on the 404 four times. 所管法令一覧 is one of the thirteen."}
+
+ {:source/id :page/licensed-operators
+  :source/verify :page
+  :source/host "www.fsa.go.jp"
+  :source/role "免許・許可・登録等を受けている事業者一覧 -- the register of who
+                actually holds each licence, permission or registration. The
+                page every PDF below hangs off, and the one that answers
+                whether a counterparty is registered at all."
+  :page/url "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :page/title "免許・許可・登録等を受けている事業者一覧： 金融庁"
+  :page/must-contain "預金取扱等金融機関"
+  :page/needle-note
+  "登録 and 免許 are both absent from the 404 and would discriminate, but they
+   are single common words that could enter the chrome at any redesign.
+   預金取扱等金融機関 is a section heading on this page and nowhere else."}
+
+ {:source/id :page/crypto-assets
+  :source/verify :page
+  :source/host "www.fsa.go.jp"
+  :source/role "暗号資産の利用者のみなさまへ -- the agency's own statement of the
+                暗号資産 regime, and the cross-check on this register's
+                payment-side statutes: it cites 資金決済に関する法律（平成21年
+                法律第59号）, 資金決済に関する法律施行令（平成22年政令第19号）
+                and 暗号資産交換業者に関する内閣府令（平成29年内閣府令第７号）,
+                which are the same three instruments, with the same numbers,
+                that :law/payment-services, :law/payment-services-order and
+                :law/crypto-exchange-ordinance resolve to independently
+                against laws.e-gov.go.jp."
+  :page/url "https://www.fsa.go.jp/policy/virtual_currency/index.html"
+  :page/title "暗号資産の利用者のみなさまへ：金融庁"
+  :page/must-contain "暗号資産交換業者に関する内閣府令"
+  :page/needle-note
+  "The needle is deliberately the ordinance name, so this check fails if the
+   regulator stops citing the instrument this register pairs it with. The
+   agreement between two independent authorities is the point of the entry."}
+
+ {:source/id :page/inquiry-desks
+  :source/verify :page
+  :source/host "www.fsa.go.jp"
+  :source/role "各種窓口のご案内 -- where a question actually goes, including
+                法令解釈に係る照会手続（ノーアクションレター制度ほか）. This is
+                the route a compliance advisor uses when the classification
+                question in front of it is genuinely unsettled, which is the
+                case the governor is supposed to refuse to answer on its own."
+  :page/url "https://www.fsa.go.jp/receipt/index.html"
+  :page/title "金融庁に設置されている各種窓口のご案内 ： 金融庁"
+  :page/must-contain "法令解釈に係る照会手続"}
+
+ ;; ── REGISTRY LISTS ─────────────────────────────────────────────────────
+ ;; The operative registers. Each is checked on status, content-type AND the
+ ;; %PDF- magic, because a deleted one answers 404 with content-type
+ ;; text/html and a 36 KB HTML body -- receiving bytes is not receiving the
+ ;; file. Each also asserts that :registry/linked-from still links to it, so
+ ;; a file that outlives the page citing it is reported rather than passing.
+ ;;
+ ;; Byte sizes are NOT recorded. These are reissued as operators register and
+ ;; deregister, so pinning length would make routine updates look like
+ ;; failures and would teach the next reader to ignore this file.
+
+ {:source/id :registry/funds-transfer
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "資金移動業者 -- who is registered to transfer funds. The
+                register for the README's primary case."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/shikin_idou.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/shikin_idou.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/payment-services}
+
+ {:source/id :registry/prepaid-third-party
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "前払式支払手段（第三者型）発行者 -- issuers whose instrument is
+                accepted by parties other than themselves, the registered
+                rather than merely notified half."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/daisan.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/daisan.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/prepaid-instruments-ordinance}
+
+ {:source/id :registry/prepaid-own-use
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "前払式支払手段（自家型）発行者 -- the notification side. Kept
+                separate from 第三者型 because the obligation that attaches is
+                different, and conflating them is the most common way to get
+                this classification wrong."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/jika.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/jika.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/prepaid-instruments-ordinance}
+
+ {:source/id :registry/crypto-exchange
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "暗号資産交換業者 -- who may exchange 暗号資産 for legal tender."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/kasoutuka.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/crypto-exchange-ordinance}
+
+ {:source/id :registry/electronic-payment-instruments
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "電子決済手段等取引業者 -- the stablecoin-facing category added to
+                資金決済法 after the others, and the one most likely to be
+                missing from an operator's mental model of the Act."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/denshikessaisyudan.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/denshikessaisyudan.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/payment-services}
+
+ {:source/id :registry/electronic-payment-agents
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "電子決済等代行業者 -- payment initiation and account
+                aggregation. Registered under 銀行法 rather than 資金決済法,
+                which is exactly why it is in this register: the category an
+                operator reaches for is not always under the Act it expects."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/dendai.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/dendai.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/banking}
+
+ {:source/id :registry/banks
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "銀行 -- the licensed institutions themselves, for the boundary
+                question the README raises about contracts touching banking."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/ginkou.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/ginkou.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/banking}
+
+ {:source/id :registry/financial-instruments-business
+  :source/verify :registry-pdf
+  :source/host "www.fsa.go.jp"
+  :source/role "金融商品取引業者 -- the securities-side register, for contracts
+                touching securities."
+  :registry/url "https://www.fsa.go.jp/menkyo/menkyoj/kinyushohin.pdf"
+  :registry/linked-from "https://www.fsa.go.jp/menkyo/menkyo.html"
+  :registry/link-path "/menkyo/menkyoj/kinyushohin.pdf"
+  :registry/content-type "application/pdf"
+  :registry/statute :law/fiea}]
