@@ -1,6 +1,6 @@
 ;; Re-fetch every entry in facts.edn from the live authority.
 ;;
-;;   nbb scripts/verify-facts.cljs
+;;   nbb scripts/verify-facts.cljk
 ;;
 ;; ── THREE EXIT CODES, ON PURPOSE
 ;;
