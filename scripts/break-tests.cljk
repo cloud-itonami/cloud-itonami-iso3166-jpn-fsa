@@ -1,6 +1,6 @@
 ;; Prove verify-facts.cljs discriminates, by breaking facts.edn on purpose.
 ;;
-;;   nbb scripts/break-tests.cljk
+;;   kbb --backend sci scripts/break-tests.cljk
 ;;
 ;; ── WHY THIS EXISTS SEPARATELY FROM THE SELF-TESTS
 ;;
