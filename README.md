@@ -57,8 +57,8 @@ not in that table has no spec-basis here — extend the table, never invent a
 law id, a law number or a URL.
 
 ```bash
-nbb scripts/verify-facts.cljk   # re-fetch every entry from the live authority
-nbb scripts/break-tests.cljk    # prove the verifier discriminates
+kbb --backend sci scripts/verify-facts.cljk   # re-fetch every entry from the live authority
+kbb --backend sci scripts/break-tests.cljk    # prove the verifier discriminates
 ```
 
 `verify-facts.cljs` has three exit codes and the third is the point: `0` every
