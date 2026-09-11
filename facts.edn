@@ -16,7 +16,7 @@
 ;; spec-basis for this repository -- extend the table, never invent an id, a
 ;; law id, or a URL.
 ;;
-;; VERIFIED BY `nbb scripts/verify-facts.cljs`, which re-fetches every entry
+;; VERIFIED BY `nbb scripts/verify-facts.cljk`, which re-fetches every entry
 ;; from the live authority. Each entry carries a :source/verify tag naming
 ;; WHICH check establishes it. The checks are NOT interchangeable, and the
 ;; reasons are the main thing this file has to teach.

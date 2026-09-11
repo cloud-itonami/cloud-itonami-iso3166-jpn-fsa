@@ -1,6 +1,6 @@
 ;; Prove verify-facts.cljs discriminates, by breaking facts.edn on purpose.
 ;;
-;;   nbb scripts/break-tests.cljs
+;;   nbb scripts/break-tests.cljk
 ;;
 ;; ── WHY THIS EXISTS SEPARATELY FROM THE SELF-TESTS
 ;;
@@ -45,7 +45,7 @@
             [clojure.string :as str]))
 
 (def ^:private register (edn/read-string (fs/readFileSync "facts.edn" "utf8")))
-(def ^:private verifier (fs/readFileSync "scripts/verify-facts.cljs" "utf8"))
+(def ^:private verifier (fs/readFileSync "scripts/verify-facts.cljk" "utf8"))
 
 (defn- by-id [id] (first (filter #(= id (:source/id %)) register)))
 (def ^:private hosts (filterv :host/name register))
@@ -79,8 +79,8 @@
   (let [dir (fs/mkdtempSync (path/join (os/tmpdir) "fsa-break-"))]
     (fs/mkdirSync (path/join dir "scripts"))
     (fs/writeFileSync (path/join dir "facts.edn") (pr-str entities))
-    (fs/writeFileSync (path/join dir "scripts/verify-facts.cljs") verifier)
-    (let [r (cp/spawnSync "nbb" #js ["scripts/verify-facts.cljs"]
+    (fs/writeFileSync (path/join dir "scripts/verify-facts.cljk") verifier)
+    (let [r (cp/spawnSync "nbb" #js ["scripts/verify-facts.cljk"]
                           #js {:cwd dir :encoding "utf8" :timeout 240000})]
       (fs/rmSync dir #js {:recursive true :force true})
       {:exit (if (nil? (.-status r)) :killed (.-status r))
